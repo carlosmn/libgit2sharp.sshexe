@@ -3,22 +3,30 @@ using LibGit2Sharp;
 
 namespace LibGit2Sharp.SshExe
 {
-	public class SsshExeTransport : SmartSubtransport
+	public class SshExeTransport : SmartSubtransport
 	{
-		public string ExePath { get; private set; }
+		public static string ExePath { get; private set; }
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="LibGit2Sharp.SshExe.SsshExeTransport"/> class.
-		/// </summary>
-		/// <param name="exePath">Path to the ssh executable</param>
-		public SsshExeTransport (string exePath)
+		public SshExeTransport ()
 		{
-			ExePath = exePath;
 		}
 
 		protected override SmartSubtransportStream Action(string url, GitSmartSubtransportAction action)
 		{
-			throw new NotImplementedException();
+			switch (action)
+			{
+			// Both of these mean we're starting a new connection
+			case GitSmartSubtransportAction.UploadPackList:
+			case GitSmartSubtransportAction.ReceivePackList:
+				return new SshExeTransportStream(this, url);
+			case GitSmartSubtransportAction.UploadPack:
+			case GitSmartSubtransportAction.ReceivePack:
+				// FIXME: do we get these actions when we're a
+				// stateful transport?
+				throw new InvalidOperationException("Shouldn't get these actions");
+			}
+
+			throw new InvalidOperationException("Invalid action");
 		}
 	}
 }
