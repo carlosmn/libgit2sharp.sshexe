@@ -10,32 +10,54 @@ namespace LibGit2Sharp.SshExe
 		readonly SshExeTransport parent;
 		readonly string url;
 
-		readonly Process process;
+		Process process;
+		readonly ProcessStartInfo startInfo;
 
-		void splitHostPath(string url, out string host, out string path)
+		bool started;
+
+        void splitHostPath(string url, out string host, out string path, out string port)
 		{
-			var parsedUrl = new Uri(url);
-			throw new NotImplementedException();
+            try
+            {
+			    var parsedUrl = new Uri(url);
+			    host = parsedUrl.Host;
+                port = parsedUrl.IsDefaultPort ? null : parsedUrl.Port.ToString();
+			    path = parsedUrl.LocalPath;
+            }
+            catch (UriFormatException)
+            {
+                throw new NotImplementedException();
+            }
 		}
 
-		public SshExeTransportStream (SshExeTransport parent, string url)
+        public SshExeTransportStream (SshExeTransport parent, string url, string procName)
 		{
 			this.parent = parent;
 			this.url = url;
 
 			// this probably needs more escaping so we pass single quotes
 			// to the upload-pack/receive-pack process itself
-			var args = String.Format("'{0}' '{1}' '{2}'");
+            string host, path, port;
+            splitHostPath(url, out host, out path, out port);
+            var args = port == null ?
+                String.Format("'{0}' '{1}' '{2}'", host, procName, path) :
+                String.Format("-p {0}'{1}' '{2}' '{3}'", port, host, procName, path);
 
-			process = new Process();
-			process.StartInfo.FileName = SshExeTransport.ExePath;
-			process.StartInfo.UseShellExecute = false;
-			process.StartInfo.Arguments = args;
-			process.Start();
+            startInfo = new ProcessStartInfo()
+            {
+                FileName = SshExeTransport.ExePath,
+                UseShellExecute = false,
+                Arguments = args,
+            };
 		}
 
 		void AssertAlive()
 		{
+            if (process == null)
+			{
+				process = Process.Start(startInfo);
+			}
+
 			if (process.HasExited)
 			{
 				throw new Exception("ssh process terminated unexpectedly");

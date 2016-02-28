@@ -17,8 +17,9 @@ namespace LibGit2Sharp.SshExe
 			{
 			// Both of these mean we're starting a new connection
 			case GitSmartSubtransportAction.UploadPackList:
+                    return new SshExeTransportStream(this, url, "git-upload-pack");
 			case GitSmartSubtransportAction.ReceivePackList:
-				return new SshExeTransportStream(this, url);
+				return new SshExeTransportStream(this, url, "git-receive-pack");
 			case GitSmartSubtransportAction.UploadPack:
 			case GitSmartSubtransportAction.ReceivePack:
 				// FIXME: do we get these actions when we're a
