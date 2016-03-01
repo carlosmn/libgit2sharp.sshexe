@@ -15,14 +15,15 @@ namespace LibGit2Sharp.SshExe
 
 		bool started;
 
-        void splitHostPath(string url, out string host, out string path, out string port)
+        void splitHostPath(string url, out string host, out string user, out string path, out string port)
 		{
             try
             {
 			    var parsedUrl = new Uri(url);
 			    host = parsedUrl.Host;
+                user = parsedUrl.UserInfo;
                 port = parsedUrl.IsDefaultPort ? null : parsedUrl.Port.ToString();
-			    path = parsedUrl.LocalPath;
+                path = parsedUrl.LocalPath.Substring(1);
             }
             catch (UriFormatException)
             {
@@ -30,24 +31,29 @@ namespace LibGit2Sharp.SshExe
             }
 		}
 
-        public SshExeTransportStream (SshExeTransport parent, string url, string procName)
+        public SshExeTransportStream(SshExeTransport parent, string url, string procName)
+            : base(parent)
 		{
 			this.parent = parent;
 			this.url = url;
 
 			// this probably needs more escaping so we pass single quotes
 			// to the upload-pack/receive-pack process itself
-            string host, path, port;
-            splitHostPath(url, out host, out path, out port);
+            string host, user, path, port;
+            splitHostPath(url, out host, out user, out path, out port);
             var args = port == null ?
-                String.Format("'{0}' '{1}' '{2}'", host, procName, path) :
-                String.Format("-p {0}'{1}' '{2}' '{3}'", port, host, procName, path);
+                String.Format("'{1}@{0}' '{2}' '{3}'", host, user, procName, path) :
+                String.Format("-p {0} {1}@{0}'{2}' '{3}' '{4}'", port, user, host, procName, path);
+            Console.WriteLine("args {0}", args);
 
             startInfo = new ProcessStartInfo()
             {
                 FileName = SshExeTransport.ExePath,
-                UseShellExecute = false,
                 Arguments = args,
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                //RedirectStandardError = true,
             };
 		}
 
@@ -55,7 +61,10 @@ namespace LibGit2Sharp.SshExe
 		{
             if (process == null)
 			{
+                Console.WriteLine("starting ssh");
 				process = Process.Start(startInfo);
+                Console.WriteLine("started ssh");
+                process.ErrorDataReceived += (sender, e) => Console.WriteLine("error: {0}", e.Data);
 			}
 
 			if (process.HasExited)
