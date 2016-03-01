@@ -11,7 +11,6 @@ namespace LibGit2Sharp.SshExe
 		readonly string url;
 
 		Process process;
-		readonly ProcessStartInfo startInfo;
 
 		bool started;
 
@@ -46,29 +45,33 @@ namespace LibGit2Sharp.SshExe
                 String.Format("-p {0} {1}@{0}'{2}' '{3}' '{4}'", port, user, host, procName, path);
             Console.WriteLine("args {0}", args);
 
-            startInfo = new ProcessStartInfo()
-            {
-                FileName = SshExeTransport.ExePath,
-                Arguments = args,
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                //RedirectStandardError = true,
-            };
+            process = new Process();
+            process.StartInfo.FileName = SshExeTransport.ExePath;
+            process.StartInfo.Arguments = args;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardError = true;
+            process.StartInfo.RedirectStandardInput = true;
+            process.StartInfo.RedirectStandardOutput = true;
 		}
 
 		void AssertAlive()
 		{
-            if (process == null)
+            if (!started)
 			{
-                Console.WriteLine("starting ssh");
-				process = Process.Start(startInfo);
-                Console.WriteLine("started ssh");
+                Console.WriteLine("setting error callback");
                 process.ErrorDataReceived += (sender, e) => Console.WriteLine("error: {0}", e.Data);
+                Console.WriteLine("starting ssh");
+				process.Start();
+                started = true;
+                Console.WriteLine("started ssh");
 			}
 
 			if (process.HasExited)
 			{
+                Console.WriteLine("hay error");
+                byte[] buf = new byte[8*1024];
+                int read = process.StandardError.BaseStream.Read(buf, 0, buf.Length);
+                Console.WriteLine("pues {0}", System.Text.Encoding.UTF8.GetString(buf, 0, read));
 				throw new Exception("ssh process terminated unexpectedly");
 			}
 		}
@@ -87,16 +90,23 @@ namespace LibGit2Sharp.SshExe
 			return 0;
 		}
 
-		public override int Read(Stream stream, long length, out long readTotal)
+        public override int Read(Stream stream, long length, out long readTotal)
 		{
 			AssertAlive();
 
 			byte[] buf = new byte[Math.Min(length, 8*1024)];
 			int read = process.StandardOutput.BaseStream.Read(buf, 0, buf.Length);
-			stream.Write(buf, 0, buf.Length);
+			stream.Write(buf, 0, read);
 
 			readTotal = read;
-			return 0;
+
+            // If we get EOF, let's make sure the process didn't just die on us
+            if (read == 0)
+            {
+                AssertAlive();
+            }
+
+            return 0;
 		}
 	}
 }
