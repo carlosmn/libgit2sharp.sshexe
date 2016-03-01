@@ -12,7 +12,7 @@ namespace LibGit2Sharp.SshExe.Tests
         {
             SshExeTransport.ExePath = "/usr/bin/ssh";
             var registration = GlobalSettings.RegisterSmartSubtransport<SshExeTransport>("ssh");
-            Repository.Clone("ssh://git@github.com/libgit2/libgit2", "/tmp/foo");
+            Repository.Clone("ssh://carlos@hessy.dwim.me/foo", "/tmp/foo");
 
             GlobalSettings.UnregisterSmartSubtransport(registration);
         }

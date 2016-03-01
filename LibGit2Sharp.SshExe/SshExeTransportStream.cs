@@ -52,6 +52,7 @@ namespace LibGit2Sharp.SshExe
             process.StartInfo.RedirectStandardError = true;
             process.StartInfo.RedirectStandardInput = true;
             process.StartInfo.RedirectStandardOutput = true;
+            process.ErrorDataReceived += (sender, e) => Console.WriteLine("error: {0}", e.Data);
 		}
 
 		void AssertAlive()
@@ -59,7 +60,6 @@ namespace LibGit2Sharp.SshExe
             if (!started)
 			{
                 Console.WriteLine("setting error callback");
-                process.ErrorDataReceived += (sender, e) => Console.WriteLine("error: {0}", e.Data);
                 Console.WriteLine("starting ssh");
 				process.Start();
                 started = true;
