@@ -5,18 +5,18 @@ using System.Diagnostics;
 
 namespace LibGit2Sharp.SshExe
 {
-	public class SshExeTransportStream : SmartSubtransportStream
-	{
-		Process process;
+    public class SshExeTransportStream : SmartSubtransportStream
+    {
+        Process process;
 
-		bool started;
+        bool started;
 
         void splitHostPath(string url, out string host, out string user, out string path, out string port)
-		{
+        {
             try
             {
-			    var parsedUrl = new Uri(url);
-			    host = parsedUrl.Host;
+                var parsedUrl = new Uri(url);
+                host = parsedUrl.Host;
                 user = parsedUrl.UserInfo;
                 port = parsedUrl.IsDefaultPort ? null : parsedUrl.Port.ToString();
                 path = parsedUrl.LocalPath.Substring(1);
@@ -25,11 +25,11 @@ namespace LibGit2Sharp.SshExe
             {
                 throw new NotImplementedException();
             }
-		}
+        }
 
         public SshExeTransportStream(SshExeTransport parent, string url, string procName)
             : base(parent)
-		{
+        {
 			// this probably needs more escaping so we pass single quotes
 			// to the upload-pack/receive-pack process itself
             string host, user, path, port;
@@ -49,16 +49,16 @@ namespace LibGit2Sharp.SshExe
             process.ErrorDataReceived += (sender, e) => Console.WriteLine("error: {0}", e.Data);
         }
 
-		void AssertAlive()
-		{
+        void AssertAlive()
+        {
             if (!started)
-			{
-				process.Start();
+            {
+                process.Start();
                 started = true;
-			}
+            }
 
-			if (process.HasExited)
-			{
+            if (process.HasExited)
+            {
                 byte[] buf = new byte[8*1024];
                 int read = process.StandardError.BaseStream.Read(buf, 0, buf.Length);
                 Console.WriteLine("pues {0}", System.Text.Encoding.UTF8.GetString(buf, 0, read));
